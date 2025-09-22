@@ -22,20 +22,32 @@
         /* App Container */
         #app-container {
             width: 100%;
-            max-width: 500px;
+            max-width: 650px; /* Increased width */
             background: #ffffff;
             border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             padding: 24px;
             text-align: center;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Controls Area */
-        .controls, .navigation {
+        /* Controls Area (now at the bottom) */
+        .controls {
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-top: 20px; /* Changed from margin-bottom */
+            order: 3; /* To place it at the bottom of the flex container */
+        }
+
+        /* Navigation Area */
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px; /* Added margin top for spacing */
+            order: 2;
         }
 
         button {
@@ -67,7 +79,7 @@
             padding: 0;
             line-height: 50px;
         }
-        
+
         #card-counter {
             font-size: 16px;
             color: #777;
@@ -79,23 +91,29 @@
         #flashcard {
             border: 1px solid #e0e0e0;
             border-radius: 12px;
-            padding: 20px;
-            min-height: 400px; /* Adjust as needed */
+            padding: 5px;
+            min-height: 500px; /* Increased min-height for larger image */
             display: flex;
             flex-direction: column;
             justify-content: center;
+            order: 1;
+            flex-grow: 1; /* Allows card to grow and fill space */
+            -webkit-user-select: none; /* Prevents text selection during swipe */
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
-        
+
         #flashcard-image {
             width: 100%;
-            max-height: 350px; /* Controls image size */
+            max-height: 400px; /* Increased max-height */
             object-fit: contain;
             border-radius: 8px;
             margin-top: 15px;
             cursor: pointer;
             transition: transform 0.2s;
         }
-        
+
         #flashcard-image:hover {
             transform: scale(1.02);
         }
@@ -104,11 +122,11 @@
         #text-container p {
             margin: 4px 0;
         }
-        
+
         .description {
             font-style: italic;
             color: #555;
-            margin-bottom: 10px !important;
+            margin-top: 15px; /* Spacing from the image */
         }
 
         .english {
@@ -128,10 +146,34 @@
             font-size: 18px;
             color: #d63384;
         }
-        
+
         /* Class to hide elements in Test mode */
         .hidden {
             display: none;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 700px) {
+            body {
+                padding: 0; /* Remove padding to make container full-width */
+            }
+            #app-container {
+                max-width: 100%;
+                min-height: 100vh;
+                border-radius: 0;
+                box-shadow: none;
+                padding: 10px;
+                justify-content: space-between; /* Better vertical spacing */
+            }
+            #flashcard {
+                min-height: auto; /* Allow flashcard to be flexible */
+            }
+            .hebrew {
+                font-size: 32px;
+            }
+            .english {
+                font-size: 22px;
+            }
         }
 
     </style>
@@ -139,16 +181,9 @@
 <body>
 
     <div id="app-container">
-        <h1>Hebrew Flashcards 🧠</h1>
-
-        <div class="controls">
-            <button id="learn-btn" class="active">Learn Mode</button>
-            <button id="test-btn">Test Mode</button>
-        </div>
-        
+        <h1>Hebrew Flashcards</h1>
         <div id="flashcard">
             <div id="text-container">
-                <p id="description" class="description"></p>
                 <p id="english" class="english">Loading cards...</p>
                 <div id="answer-container">
                     <p id="hebrew" class="hebrew"></p>
@@ -156,12 +191,18 @@
                 </div>
             </div>
             <img id="flashcard-image" src="" alt="Flashcard Image" style="display: none;">
+            <p id="description" class="description"></p>
         </div>
 
         <div class="navigation">
             <button id="prev-btn" class="nav-btn">←</button>
             <span id="card-counter"></span>
             <button id="next-btn" class="nav-btn">→</button>
+        </div>
+
+        <div class="controls">
+            <button id="learn-btn" class="active">Learn Mode</button>
+            <button id="test-btn">Test Mode</button>
         </div>
     </div>
 
@@ -173,6 +214,8 @@
         let currentCardIndex = 0;
         let currentMode = 'learn'; // 'learn' or 'test'
         let isFlipped = false;
+        let touchstartX = 0; // For swipe detection
+        let touchendX = 0;   // For swipe detection
 
         // --- DOM ELEMENT REFERENCES ---
         const descriptionEl = document.getElementById('description');
@@ -182,7 +225,7 @@
         const answerContainer = document.getElementById('answer-container');
         const imageEl = document.getElementById('flashcard-image');
         const cardCounterEl = document.getElementById('card-counter');
-        
+
         const learnBtn = document.getElementById('learn-btn');
         const testBtn = document.getElementById('test-btn');
         const prevBtn = document.getElementById('prev-btn');
@@ -197,10 +240,9 @@
         function parseCSV(csvText) {
             const lines = csvText.trim().split(/\r?\n/);
             if (lines.length < 2) return [];
-            
+
             const headers = lines[0].split(',').map(h => h.trim());
             const rows = lines.slice(1).map(line => {
-                // This regex handles commas inside quoted fields
                 const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
                 let obj = {};
                 headers.forEach((header, index) => {
@@ -211,20 +253,31 @@
             return rows;
         }
 
+        /**
+         * Shuffles an array in place using the Fisher-Yates algorithm.
+         * @param {Array} array The array to shuffle.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
         // --- CORE FUNCTION ---
         function renderCard() {
             if (cards.length === 0) {
                 englishEl.textContent = 'No cards found.';
                 return;
             }
-            
-            imageEl.style.display = 'block'; // Show image once loaded
+
+            imageEl.style.display = 'block';
             const card = cards[currentCardIndex];
-            
+
             englishEl.textContent = card.english;
             imageEl.src = card.image;
             imageEl.alt = card.english;
-            
+
             hebrewEl.textContent = card.hebrew;
             transliterationEl.textContent = card.transliteration;
             descriptionEl.textContent = card.description;
@@ -277,7 +330,29 @@
                 renderCard();
             }
         });
-        
+
+        // --- SWIPE GESTURE LOGIC ---
+        function handleSwipe() {
+            const swipeThreshold = 50; // Minimum distance in pixels for a swipe
+            if (touchendX < touchstartX - swipeThreshold) {
+                // Swiped left
+                nextBtn.click();
+            }
+            if (touchendX > touchstartX + swipeThreshold) {
+                // Swiped right
+                prevBtn.click();
+            }
+        }
+
+        flashcardEl.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        flashcardEl.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
         // --- INITIALIZATION ---
         async function initializeApp() {
             // !!! IMPORTANT: Replace this URL with the one you got from Google Sheets !!!
@@ -287,18 +362,19 @@
                 englishEl.textContent = 'Error: Please set your Google Sheet URL in the script.';
                 return;
             }
-            
-            // Use a CORS proxy to bypass browser security restrictions for fetching data from another domain.
+
             const proxyUrl = 'https://api.allorigins.win/raw?url=';
             const fetchUrl = `${proxyUrl}${encodeURIComponent(googleSheetUrl)}`;
 
             try {
                 const response = await fetch(fetchUrl);
                 if (!response.ok) throw new Error(`Network response was not ok. Status: ${response.status}`);
-                
+
                 const csvText = await response.text();
                 cards = parseCSV(csvText);
-                
+
+                shuffleArray(cards); // <-- Randomize the card order
+
                 if (cards.length > 0) {
                     renderCard();
                 } else {
@@ -309,11 +385,10 @@
                 englishEl.textContent = 'Error loading flashcards. See console for details.';
             }
         }
-        
+
         // Load the data and start the app
         initializeApp();
 
     </script>
 </body>
 </html>
-
