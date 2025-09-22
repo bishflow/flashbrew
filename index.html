@@ -17,12 +17,13 @@
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
+            overflow: hidden; /* Prevents scrollbars during swipe animation */
         }
 
         /* App Container */
         #app-container {
             width: 100%;
-            max-width: 650px; /* Increased width */
+            max-width: 650px;
             background: #ffffff;
             border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -32,13 +33,13 @@
             flex-direction: column;
         }
 
-        /* Controls Area (now at the bottom) */
+        /* Controls Area */
         .controls {
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin-top: 20px; /* Changed from margin-bottom */
-            order: 3; /* To place it at the bottom of the flex container */
+            margin-top: 20px;
+            order: 3;
         }
 
         /* Navigation Area */
@@ -46,7 +47,7 @@
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin-top: 20px; /* Added margin top for spacing */
+            margin-top: 20px;
             order: 2;
         }
 
@@ -92,23 +93,40 @@
             border: 1px solid #e0e0e0;
             border-radius: 12px;
             padding: 5px;
-            min-height: 500px; /* Increased min-height for larger image */
+            min-height: 500px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             order: 1;
-            flex-grow: 1; /* Allows card to grow and fill space */
-            -webkit-user-select: none; /* Prevents text selection during swipe */
+            flex-grow: 1;
+            position: relative; /* Needed for transform */
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out; /* Smooth animations */
+            -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
         }
 
+        /* New styles for swipe animations */
+        #flashcard.is-dragging {
+            transition: none; /* Disable transition while actively dragging */
+        }
+
+        #flashcard.swipe-left {
+            transform: translateX(-150%) rotate(-15deg);
+            opacity: 0;
+        }
+
+        #flashcard.swipe-right {
+            transform: translateX(150%) rotate(15deg);
+            opacity: 0;
+        }
+
         #flashcard-image {
             width: 100%;
-            max-height: 400px; /* Increased max-height */
+            max-height: 400px;
             object-fit: contain;
-            border-radius: 8px;
+            border-radius: 12px; /* Rounded edges */
             margin-top: 15px;
             cursor: pointer;
             transition: transform 0.2s;
@@ -126,7 +144,7 @@
         .description {
             font-style: italic;
             color: #555;
-            margin-top: 15px; /* Spacing from the image */
+            margin-top: 15px;
         }
 
         .english {
@@ -135,10 +153,35 @@
             color: #000;
         }
 
+        /* Container for Hebrew word and speak button */
+        .hebrew-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            direction: rtl; /* Ensures container layout is also RTL */
+        }
+
         .hebrew {
             font-size: 36px;
             font-weight: bold;
-            direction: rtl; /* Right-to-Left for Hebrew */
+            direction: rtl;
+            color: #0056b3;
+        }
+
+        /* Speak button style */
+        #speak-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0 5px;
+            color: #007bff;
+            transition: color 0.2s;
+        }
+
+        #speak-btn:hover {
+            background: none; /* Override general button hover */
             color: #0056b3;
         }
 
@@ -147,7 +190,6 @@
             color: #d63384;
         }
 
-        /* Class to hide elements in Test mode */
         .hidden {
             display: none;
         }
@@ -155,7 +197,7 @@
         /* Mobile Responsive Styles */
         @media (max-width: 700px) {
             body {
-                padding: 0; /* Remove padding to make container full-width */
+                padding: 0;
             }
             #app-container {
                 max-width: 100%;
@@ -163,10 +205,10 @@
                 border-radius: 0;
                 box-shadow: none;
                 padding: 10px;
-                justify-content: space-between; /* Better vertical spacing */
+                justify-content: space-between;
             }
             #flashcard {
-                min-height: auto; /* Allow flashcard to be flexible */
+                min-height: auto;
             }
             .hebrew {
                 font-size: 32px;
@@ -175,7 +217,6 @@
                 font-size: 22px;
             }
         }
-
     </style>
 </head>
 <body>
@@ -186,7 +227,10 @@
             <div id="text-container">
                 <p id="english" class="english">Loading cards...</p>
                 <div id="answer-container">
-                    <p id="hebrew" class="hebrew"></p>
+                    <div class="hebrew-container">
+                        <p id="hebrew" class="hebrew"></p>
+                        <button id="speak-btn" title="Listen">🔊</button>
+                    </div>
                     <p id="transliteration" class="transliteration"></p>
                 </div>
             </div>
@@ -208,14 +252,16 @@
 
     <script>
         // --- DATA ---
-        let cards = []; // This will be populated from Google Sheets
+        let cards = [];
 
         // --- STATE MANAGEMENT ---
         let currentCardIndex = 0;
         let currentMode = 'learn'; // 'learn' or 'test'
         let isFlipped = false;
-        let touchstartX = 0; // For swipe detection
-        let touchendX = 0;   // For swipe detection
+        // Swipe gesture state
+        let touchstartX = 0;
+        let touchstartY = 0;
+        let isDragging = false;
 
         // --- DOM ELEMENT REFERENCES ---
         const descriptionEl = document.getElementById('description');
@@ -225,6 +271,7 @@
         const answerContainer = document.getElementById('answer-container');
         const imageEl = document.getElementById('flashcard-image');
         const cardCounterEl = document.getElementById('card-counter');
+        const speakBtn = document.getElementById('speak-btn');
 
         const learnBtn = document.getElementById('learn-btn');
         const testBtn = document.getElementById('test-btn');
@@ -234,8 +281,6 @@
 
         /**
          * Parses CSV text into an array of objects.
-         * @param {string} csvText The raw CSV text.
-         * @returns {Array<Object>} An array of card objects.
          */
         function parseCSV(csvText) {
             const lines = csvText.trim().split(/\r?\n/);
@@ -254,8 +299,7 @@
         }
 
         /**
-         * Shuffles an array in place using the Fisher-Yates algorithm.
-         * @param {Array} array The array to shuffle.
+         * Shuffles an array in place.
          */
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
@@ -271,8 +315,8 @@
                 return;
             }
 
-            imageEl.style.display = 'block';
             const card = cards[currentCardIndex];
+            imageEl.style.display = card.image ? 'block' : 'none';
 
             englishEl.textContent = card.english;
             imageEl.src = card.image;
@@ -331,27 +375,76 @@
             }
         });
 
-        // --- SWIPE GESTURE LOGIC ---
-        function handleSwipe() {
-            const swipeThreshold = 50; // Minimum distance in pixels for a swipe
-            if (touchendX < touchstartX - swipeThreshold) {
-                // Swiped left
-                nextBtn.click();
-            }
-            if (touchendX > touchstartX + swipeThreshold) {
-                // Swiped right
-                prevBtn.click();
-            }
-        }
+        speakBtn.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent card from flipping in test mode
 
+            const hebrewText = hebrewEl.textContent;
+            if (!hebrewText || !('speechSynthesis' in window)) {
+                console.warn("Speech synthesis not supported or no text to speak.");
+                return;
+            }
+
+            window.speechSynthesis.cancel(); // Cancel any ongoing speech
+            const utterance = new SpeechSynthesisUtterance(hebrewText);
+            utterance.lang = 'he-IL'; // Specify Hebrew (Israel) for best voice
+            utterance.rate = 0.9; // Speak slightly slower for clarity
+            window.speechSynthesis.speak(utterance);
+        });
+
+        // --- SWIPE GESTURE LOGIC ---
         flashcardEl.addEventListener('touchstart', e => {
-            touchstartX = e.changedTouches[0].screenX;
+            if (e.target.tagName === 'BUTTON') return; // Don't swipe if touching a button
+            isDragging = true;
+            touchstartX = e.touches[0].clientX;
+            touchstartY = e.touches[0].clientY;
+            flashcardEl.classList.add('is-dragging');
+        }, { passive: true });
+
+        flashcardEl.addEventListener('touchmove', e => {
+            if (!isDragging) return;
+
+            const currentX = e.touches[0].clientX;
+            const currentY = e.touches[0].clientY;
+
+            // Prevent swipe if user is scrolling vertically
+            if (Math.abs(currentX - touchstartX) < Math.abs(currentY - touchstartY)) {
+                isDragging = false;
+                flashcardEl.style.transform = '';
+                return;
+            }
+
+            const deltaX = currentX - touchstartX;
+            const rotation = deltaX / 20; // Add a rotation effect during drag
+            flashcardEl.style.transform = `translateX(${deltaX}px) rotate(${rotation}deg)`;
         }, { passive: true });
 
         flashcardEl.addEventListener('touchend', e => {
-            touchendX = e.changedTouches[0].screenX;
-            handleSwipe();
+            if (!isDragging) return;
+            isDragging = false;
+            flashcardEl.classList.remove('is-dragging');
+
+            const deltaX = e.changedTouches[0].clientX - touchstartX;
+            const swipeThreshold = flashcardEl.offsetWidth / 3; // Must swipe 1/3 of card width
+
+            if (Math.abs(deltaX) > swipeThreshold) {
+                // Successful swipe
+                const swipeDirectionClass = deltaX < 0 ? 'swipe-left' : 'swipe-right';
+                flashcardEl.classList.add(swipeDirectionClass);
+
+                setTimeout(() => {
+                    if (deltaX < 0) nextBtn.click();
+                    else prevBtn.click();
+
+                    // Reset card for the next one
+                    flashcardEl.style.transform = '';
+                    flashcardEl.classList.remove(swipeDirectionClass);
+                }, 300); // Match CSS transition duration
+            } else {
+                // Swipe failed, animate back to center
+                flashcardEl.style.transform = '';
+            }
         });
+
 
         // --- INITIALIZATION ---
         async function initializeApp() {
@@ -372,8 +465,7 @@
 
                 const csvText = await response.text();
                 cards = parseCSV(csvText);
-
-                shuffleArray(cards); // <-- Randomize the card order
+                shuffleArray(cards);
 
                 if (cards.length > 0) {
                     renderCard();
@@ -386,9 +478,7 @@
             }
         }
 
-        // Load the data and start the app
         initializeApp();
-
     </script>
 </body>
 </html>
