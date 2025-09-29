@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8DPFHXTE94"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8DPFHXTE94"></script>
 <script>
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
@@ -191,32 +190,32 @@ gtag('config', 'G-8DPFHXTE94');
         }
 
 
-        /* Class to hide elements in Test mode */
+        /* Class to hide elements */
         .hidden {
             display: none;
         }
 
         /* Email Form Styles */
-        #email-capture-container {
+        #email-capture-container, #end-screen-container {
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid #e0e0e0;
             order: 4; /* Ensure it's at the very bottom */
         }
 
-        #email-capture-container p {
+        #email-capture-container p, #end-screen-container p {
             margin-bottom: 10px;
             font-size: 16px;
             color: #333;
         }
 
-        #email-form {
+        #email-form, #end-email-form {
             display: flex;
             justify-content: center;
             gap: 8px;
         }
 
-        #email-form input[type="email"] {
+        #email-form input[type="email"], #end-email-form input[type="email"] {
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 8px;
@@ -225,12 +224,12 @@ gtag('config', 'G-8DPFHXTE94');
             max-width: 300px;
         }
 
-        #email-form button {
+        #email-form button, #end-email-form button {
             background-color: #28a745;
             color: white;
             border-color: #28a745;
         }
-        #email-form button:hover {
+        #email-form button:hover, #end-email-form button:hover {
             background-color: #218838;
         }
 
@@ -260,11 +259,11 @@ gtag('config', 'G-8DPFHXTE94');
             .audio-button .material-symbols-outlined {
                 font-size: 32px;
             }
-            #email-form {
+            #email-form, #end-email-form {
                 flex-direction: column;
                 align-items: center;
             }
-            #email-form input[type="email"], #email-form button {
+            #email-form input[type="email"], #email-form button, #end-email-form input[type="email"], #end-email-form button {
                 width: 100%;
                 max-width: 350px;
             }
@@ -283,7 +282,6 @@ gtag('config', 'G-8DPFHXTE94');
                     <div id="hebrew-container">
                         <p id="hebrew" class="hebrew"></p>
                         <button id="audio-btn" class="audio-button" title="Read aloud">
-                        <!--     <span class="material-symbols-outlined">volume_up</span> -->
                         </button>
                     </div>
                     <p id="transliteration" class="transliteration"></p>
@@ -304,7 +302,6 @@ gtag('config', 'G-8DPFHXTE94');
             <button id="test-btn">Test Mode</button>
         </div>
 
-        <!-- Email Capture Form -->
         <div id="email-capture-container">
             <p>Interested in more flashcards?</p>
             <form id="email-form">
@@ -313,11 +310,19 @@ gtag('config', 'G-8DPFHXTE94');
             </form>
         </div>
 
+        <div id="end-screen-container" class="hidden">
+             <p>That's all for now. Thanks for checking these out! Let me know if you are interested in seeing more.</p>
+             <form id="end-email-form">
+                <input type="email" id="end-email-input" placeholder="Email address" required>
+                <button type="submit">Submit</button>
+            </form>
+        </div>
+
     </div>
 
     <script>
         // --- DATA ---
-        let cards = []; // This will be populated from Google Sheets
+        let cards = []; // This will be populated from the local CSV
 
         // --- STATE MANAGEMENT ---
         let currentCardIndex = 0;
@@ -334,7 +339,7 @@ gtag('config', 'G-8DPFHXTE94');
         const answerContainer = document.getElementById('answer-container');
         const imageEl = document.getElementById('flashcard-image');
         const cardCounterEl = document.getElementById('card-counter');
-        const audioBtn = document.getElementById('audio-btn'); // Reference for the new audio button
+        const audioBtn = document.getElementById('audio-btn');
 
         const learnBtn = document.getElementById('learn-btn');
         const testBtn = document.getElementById('test-btn');
@@ -347,6 +352,11 @@ gtag('config', 'G-8DPFHXTE94');
         const emailForm = document.getElementById('email-form');
         const emailInput = document.getElementById('email-input');
 
+        // End screen elements
+        const endScreenContainer = document.getElementById('end-screen-container');
+        const endEmailForm = document.getElementById('end-email-form');
+        const endEmailInput = document.getElementById('end-email-input');
+
         /**
          * Parses CSV text into an array of objects.
          * @param {string} csvText The raw CSV text.
@@ -358,6 +368,7 @@ gtag('config', 'G-8DPFHXTE94');
 
             const headers = lines[0].split(',').map(h => h.trim());
             const rows = lines.slice(1).map(line => {
+                // This regex handles commas inside quoted fields
                 const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
                 let obj = {};
                 headers.forEach((header, index) => {
@@ -365,21 +376,25 @@ gtag('config', 'G-8DPFHXTE94');
                 });
                 return obj;
             });
-            return rows;
+            // Filter out any rows that don't have an 'english' value
+            return rows.filter(card => card.english);
         }
+
 
         /**
          * Shuffles an array in place using the Fisher-Yates algorithm.
          * @param {Array} array The array to shuffle.
          */
+        /*
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [array[i], array[j]] = [array[j], array[i]];
             }
         }
+        */
 
-        // --- CORE FUNCTION ---
+        // --- CORE FUNCTIONS ---
         function renderCard() {
             if (cards.length === 0) {
                 englishEl.textContent = 'No cards found.';
@@ -408,6 +423,18 @@ gtag('config', 'G-8DPFHXTE94');
             }
         }
 
+        function showEndScreen() {
+            // Hide the main app components
+            document.querySelector('h1').style.display = 'none';
+            flashcardEl.style.display = 'none';
+            document.querySelector('.navigation').style.display = 'none';
+            document.querySelector('.controls').style.display = 'none';
+            emailCaptureContainer.style.display = 'none';
+
+            // Show the end screen
+            endScreenContainer.classList.remove('hidden');
+        }
+
         // --- EVENT LISTENERS ---
         learnBtn.addEventListener('click', () => {
             currentMode = 'learn';
@@ -427,9 +454,14 @@ gtag('config', 'G-8DPFHXTE94');
 
         nextBtn.addEventListener('click', () => {
             if (cards.length === 0) return;
-            currentCardIndex = (currentCardIndex + 1) % cards.length;
-            isFlipped = false;
-            renderCard();
+            // If we are on the last card, show the end screen. Otherwise, advance.
+            if (currentCardIndex >= cards.length - 1) {
+                showEndScreen();
+            } else {
+                currentCardIndex++;
+                isFlipped = false;
+                renderCard();
+            }
         });
 
         prevBtn.addEventListener('click', () => {
@@ -440,7 +472,6 @@ gtag('config', 'G-8DPFHXTE94');
         });
 
         flashcardEl.addEventListener('click', () => {
-            // Note: Clicks on children (like the audio button) will bubble up to here.
             if (currentMode === 'test') {
                 isFlipped = !isFlipped;
                 renderCard();
@@ -448,16 +479,14 @@ gtag('config', 'G-8DPFHXTE94');
         });
 
         audioBtn.addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevents the flashcard from flipping in test mode when this button is clicked
+            event.stopPropagation(); // Prevents the flashcard from flipping in test mode
 
             const textToSpeak = hebrewEl.textContent;
             if (textToSpeak && 'speechSynthesis' in window) {
-                // Cancel any previously queued speech
                 window.speechSynthesis.cancel();
-
-                const utterance = new SpeechSynthesisUtterterance(textToSpeak);
-                utterance.lang = 'he-IL'; // Set the language to Hebrew (Israel)
-                utterance.rate = 0.9; // Slightly slower for clarity
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                utterance.lang = 'he-IL';
+                utterance.rate = 0.9;
                 window.speechSynthesis.speak(utterance);
             } else {
                 alert('Sorry, your browser does not support text-to-speech.');
@@ -465,41 +494,42 @@ gtag('config', 'G-8DPFHXTE94');
         });
 
         // --- EMAIL FORM SUBMISSION ---
-        emailForm.addEventListener('submit', async (event) => {
+        async function handleFormSubmit(event, emailInputElement, containerElement) {
             event.preventDefault(); // Prevent the default form submission
 
-            const email = emailInput.value;
+            const email = emailInputElement.value;
             if (!email) return;
 
             const formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSeHVNOky5l720zvA0aks0MA-dRSn46JBply--fM2V--XZR3-w/formResponse?usp=pp_url&entry.1733304027=${encodeURIComponent(email)}`;
 
             try {
-                // We use 'no-cors' mode because we can't access the response from Google Forms,
-                // but the request will still go through and submit the data.
                 await fetch(formUrl, {
                     method: 'POST',
                     mode: 'no-cors'
                 });
-
-                // On success, show the thank you message
-                emailCaptureContainer.innerHTML = '<p>Nice one. I\'ll be in touch.</p>';
-
+                containerElement.innerHTML = '<p>Nice one. I\'ll be in touch.</p>';
             } catch (error) {
                 console.error('Error submitting form:', error);
-                // Optionally, display an error message to the user
-                emailCaptureContainer.innerHTML = '<p>Something went wrong. Please try again.</p>';
+                containerElement.innerHTML = '<p>Something went wrong. Please try again.</p>';
             }
+        }
+
+        emailForm.addEventListener('submit', (event) => {
+            handleFormSubmit(event, emailInput, emailCaptureContainer);
         });
+
+        endEmailForm.addEventListener('submit', (event) => {
+            handleFormSubmit(event, endEmailInput, endScreenContainer);
+        });
+
 
         // --- SWIPE GESTURE LOGIC ---
         function handleSwipe() {
             const swipeThreshold = 50; // Minimum distance in pixels for a swipe
             if (touchendX < touchstartX - swipeThreshold) {
-                // Swiped left
-                nextBtn.click();
+                nextBtn.click(); // Trigger the same logic as the next button
             }
             if (touchendX > touchstartX + swipeThreshold) {
-                // Swiped right
                 prevBtn.click();
             }
         }
@@ -515,34 +545,24 @@ gtag('config', 'G-8DPFHXTE94');
 
         // --- INITIALIZATION ---
         async function initializeApp() {
-            // !!! IMPORTANT: Replace this URL with the one you got from Google Sheets !!!
-            const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT95M4sqlMQsvQCwpeL5cqDG6OsgCxs3RiJZRDPkmOd23nahZfDO1UGwZx853uhJe2hVmt6k8_EjrDY/pub?gid=905710232&single=true&output=csv';
-
-            if (googleSheetUrl.includes('PASTE_YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE')) {
-                englishEl.textContent = 'Error: Please set your Google Sheet URL in the script.';
-                return;
-            }
-
-            const proxyUrl = 'https://api.allorigins.win/raw?url=';
-            const fetchUrl = `${proxyUrl}${encodeURIComponent(googleSheetUrl)}`;
+            const localCsvUrl = 'words.csv'; // Path to the local CSV file
 
             try {
-                const response = await fetch(fetchUrl);
+                const response = await fetch(localCsvUrl);
                 if (!response.ok) throw new Error(`Network response was not ok. Status: ${response.status}`);
 
                 const csvText = await response.text();
                 cards = parseCSV(csvText);
-
-                shuffleArray(cards); // <-- Randomize the card order
+                // shuffleArray(cards);
 
                 if (cards.length > 0) {
                     renderCard();
                 } else {
-                    englishEl.textContent = 'Could not load any cards. Check your Google Sheet data and URL.';
+                    englishEl.textContent = 'Could not load any cards. Check your words.csv file.';
                 }
             } catch (error) {
-                console.error('Failed to load or parse card data:', error);
-                englishEl.textContent = 'Error loading flashcards. See console for details.';
+                console.error('Failed to load or parse card data from words.csv:', error);
+                englishEl.textContent = 'Error loading flashcards. Make sure words.csv is in the same directory. See console for details.';
             }
         }
 
