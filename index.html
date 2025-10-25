@@ -119,7 +119,6 @@ gtag('config', 'G-8DPFHXTE94');
             width: 100%;
             max-height: 400px; /* Increased max-height */
             object-fit: contain;
-            /* REQUIREMENT 1: Added border-radius to round image corners */
             border-radius: 15px;
             margin-top: 15px;
             cursor: pointer;
@@ -128,6 +127,15 @@ gtag('config', 'G-8DPFHXTE94');
 
         #flashcard-image:hover {
             transform: scale(1.02);
+        }
+
+        /* Buttons inside the flashcard */
+        .card-button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
         }
 
         /* Text Styles */
@@ -191,7 +199,7 @@ gtag('config', 'G-8DPFHXTE94');
         }
 
 
-        /* Class to hide elements in Test mode */
+        /* Class to hide elements */
         .hidden {
             display: none;
         }
@@ -279,7 +287,7 @@ gtag('config', 'G-8DPFHXTE94');
         <div id="flashcard">
             <div id="text-container">
                 <p id="english" class="english">Loading cards...</p>
-                <div id="answer-container">
+                <div id="answer-container" class="hidden">
                     <div id="hebrew-container">
                         <p id="hebrew" class="hebrew"></p>
                         <button id="audio-btn" class="audio-button" title="Read aloud">
@@ -289,8 +297,14 @@ gtag('config', 'G-8DPFHXTE94');
                     <p id="transliteration" class="transliteration"></p>
                 </div>
             </div>
-            <img id="flashcard-image" src="" alt="Flashcard Image" style="display: none;">
-            <p id="description" class="description"></p>
+
+            <div class="card-button-container">
+                 <button id="show-answer-btn" class="hidden">Show answer</button>
+                 <button id="show-image-btn" class="hidden">Show image</button>
+            </div>
+
+            <img id="flashcard-image" src="" alt="Flashcard Image" class="hidden">
+            <p id="description" class="description hidden"></p>
         </div>
 
         <div class="navigation">
@@ -300,8 +314,9 @@ gtag('config', 'G-8DPFHXTE94');
         </div>
 
         <div class="controls">
-            <button id="learn-btn" class="active">Learn Mode</button>
-            <button id="test-btn">Test Mode</button>
+            <button id="learn-btn" class="active">Learn</button>
+            <button id="test-btn">Easy Test</button>
+            <button id="hard-test-btn">Hard Test</button>
         </div>
 
         <!-- Email Capture Form -->
@@ -317,14 +332,13 @@ gtag('config', 'G-8DPFHXTE94');
 
     <script>
         // --- DATA ---
-        let cards = []; // This will be populated from Google Sheets
+        let cards = [];
 
         // --- STATE MANAGEMENT ---
         let currentCardIndex = 0;
-        let currentMode = 'learn'; // 'learn' or 'test'
-        let isFlipped = false;
-        let touchstartX = 0; // For swipe detection
-        let touchendX = 0;   // For swipe detection
+        let currentMode = 'learn'; // 'learn', 'test', or 'hard-test'
+        let touchstartX = 0;
+        let touchendX = 0;
 
         // --- DOM ELEMENT REFERENCES ---
         const descriptionEl = document.getElementById('description');
@@ -334,13 +348,21 @@ gtag('config', 'G-8DPFHXTE94');
         const answerContainer = document.getElementById('answer-container');
         const imageEl = document.getElementById('flashcard-image');
         const cardCounterEl = document.getElementById('card-counter');
-        const audioBtn = document.getElementById('audio-btn'); // Reference for the new audio button
+        const audioBtn = document.getElementById('audio-btn');
+        const flashcardEl = document.getElementById('flashcard');
 
+        // Mode buttons
         const learnBtn = document.getElementById('learn-btn');
         const testBtn = document.getElementById('test-btn');
+        const hardTestBtn = document.getElementById('hard-test-btn');
+
+        // Navigation buttons
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
-        const flashcardEl = document.getElementById('flashcard');
+
+        // Card action buttons
+        const showImageBtn = document.getElementById('show-image-btn');
+        const showAnswerBtn = document.getElementById('show-answer-btn');
 
         // Email form elements
         const emailCaptureContainer = document.getElementById('email-capture-container');
@@ -349,15 +371,12 @@ gtag('config', 'G-8DPFHXTE94');
 
         /**
          * Parses CSV text into an array of objects.
-         * @param {string} csvText The raw CSV text.
-         * @returns {Array<Object>} An array of card objects.
          */
         function parseCSV(csvText) {
             const lines = csvText.trim().split(/\r?\n/);
             if (lines.length < 2) return [];
-
             const headers = lines[0].split(',').map(h => h.trim());
-            const rows = lines.slice(1).map(line => {
+            return lines.slice(1).map(line => {
                 const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
                 let obj = {};
                 headers.forEach((header, index) => {
@@ -365,18 +384,6 @@ gtag('config', 'G-8DPFHXTE94');
                 });
                 return obj;
             });
-            return rows;
-        }
-
-        /**
-         * Shuffles an array in place using the Fisher-Yates algorithm.
-         * @param {Array} array The array to shuffle.
-         */
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
         }
 
         // --- CORE FUNCTION ---
@@ -386,78 +393,103 @@ gtag('config', 'G-8DPFHXTE94');
                 return;
             }
 
-            imageEl.style.display = 'block';
             const card = cards[currentCardIndex];
-
             englishEl.textContent = card.english;
             imageEl.src = card.image;
             imageEl.alt = card.english;
-
             hebrewEl.textContent = card.hebrew;
             transliterationEl.textContent = card.transliteration;
             descriptionEl.textContent = card.description;
-
             cardCounterEl.textContent = `${currentCardIndex + 1} / ${cards.length}`;
 
+            // --- Reset visibility for all controlled elements ---
+            imageEl.classList.add('hidden');
+            showImageBtn.classList.add('hidden');
+            showAnswerBtn.classList.add('hidden');
+            descriptionEl.classList.add('hidden');
+            answerContainer.classList.add('hidden');
+
+            // --- Set visibility based on the current mode ---
             if (currentMode === 'learn') {
+                imageEl.classList.remove('hidden');
                 descriptionEl.classList.remove('hidden');
                 answerContainer.classList.remove('hidden');
-            } else { // test mode
-                descriptionEl.classList.add('hidden');
-                answerContainer.classList.toggle('hidden', !isFlipped);
+            } else if (currentMode === 'test') { // Easy Test
+                imageEl.classList.remove('hidden');
+                showAnswerBtn.classList.remove('hidden');
+            } else if (currentMode === 'hard-test') {
+                showImageBtn.classList.remove('hidden');
+                showAnswerBtn.classList.remove('hidden');
             }
         }
 
-        // --- EVENT LISTENERS ---
-        learnBtn.addEventListener('click', () => {
-            currentMode = 'learn';
-            isFlipped = false;
-            learnBtn.classList.add('active');
-            testBtn.classList.remove('active');
+        // --- MODE SELECTION ---
+        function setMode(newMode) {
+            currentMode = newMode;
+            learnBtn.classList.toggle('active', newMode === 'learn');
+            testBtn.classList.toggle('active', newMode === 'test');
+            hardTestBtn.classList.toggle('active', newMode === 'hard-test');
             renderCard();
-        });
+        }
 
-        testBtn.addEventListener('click', () => {
-            currentMode = 'test';
-            isFlipped = false;
-            testBtn.classList.add('active');
-            learnBtn.classList.remove('active');
-            renderCard();
-        });
+        learnBtn.addEventListener('click', () => setMode('learn'));
+        testBtn.addEventListener('click', () => setMode('test'));
+        hardTestBtn.addEventListener('click', () => setMode('hard-test'));
 
-        nextBtn.addEventListener('click', () => {
+        // --- NAVIGATION ---
+        function navigate(direction) {
             if (cards.length === 0) return;
-            currentCardIndex = (currentCardIndex + 1) % cards.length;
-            isFlipped = false;
+            currentCardIndex = (currentCardIndex + direction + cards.length) % cards.length;
             renderCard();
-        });
+        }
 
-        prevBtn.addEventListener('click', () => {
-            if (cards.length === 0) return;
-            currentCardIndex = (currentCardIndex - 1 + cards.length) % cards.length;
-            isFlipped = false;
-            renderCard();
-        });
+        nextBtn.addEventListener('click', () => navigate(1));
+        prevBtn.addEventListener('click', () => navigate(-1));
 
+        // --- INTERACTION HANDLERS ---
         flashcardEl.addEventListener('click', () => {
-            // Note: Clicks on children (like the audio button) will bubble up to here.
-            if (currentMode === 'test') {
-                isFlipped = !isFlipped;
-                renderCard();
+            if (currentMode === 'test') { // Easy Test flip
+                answerContainer.classList.remove('hidden');
+                showAnswerBtn.classList.add('hidden');
+            }
+        });
+
+        showImageBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (currentMode === 'hard-test') {
+                showImageBtn.classList.add('hidden');
+                imageEl.classList.remove('hidden');
+            }
+        });
+
+        showAnswerBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            // This button reveals the full answer in both test modes
+            imageEl.classList.remove('hidden');
+            answerContainer.classList.remove('hidden');
+            descriptionEl.classList.remove('hidden');
+
+            // Hide the buttons that trigger reveals
+            showImageBtn.classList.add('hidden');
+            showAnswerBtn.classList.add('hidden');
+        });
+
+        imageEl.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (currentMode === 'hard-test') {
+                answerContainer.classList.remove('hidden');
+                showAnswerBtn.classList.add('hidden'); // Also hide the answer button
             }
         });
 
         audioBtn.addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevents the flashcard from flipping in test mode when this button is clicked
-
+            event.stopPropagation();
             const textToSpeak = hebrewEl.textContent;
             if (textToSpeak && 'speechSynthesis' in window) {
-                // Cancel any previously queued speech
                 window.speechSynthesis.cancel();
-
-                const utterance = new SpeechSynthesisUtterterance(textToSpeak);
-                utterance.lang = 'he-IL'; // Set the language to Hebrew (Israel)
-                utterance.rate = 0.9; // Slightly slower for clarity
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                utterance.lang = 'he-IL';
+                utterance.rate = 0.9;
                 window.speechSynthesis.speak(utterance);
             } else {
                 alert('Sorry, your browser does not support text-to-speech.');
@@ -466,56 +498,31 @@ gtag('config', 'G-8DPFHXTE94');
 
         // --- EMAIL FORM SUBMISSION ---
         emailForm.addEventListener('submit', async (event) => {
-            event.preventDefault(); // Prevent the default form submission
-
+            event.preventDefault();
             const email = emailInput.value;
             if (!email) return;
-
             const formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSeHVNOky5l720zvA0aks0MA-dRSn46JBply--fM2V--XZR3-w/formResponse?usp=pp_url&entry.1733304027=${encodeURIComponent(email)}`;
-
             try {
-                // We use 'no-cors' mode because we can't access the response from Google Forms,
-                // but the request will still go through and submit the data.
-                await fetch(formUrl, {
-                    method: 'POST',
-                    mode: 'no-cors'
-                });
-
-                // On success, show the thank you message
+                await fetch(formUrl, { method: 'POST', mode: 'no-cors' });
                 emailCaptureContainer.innerHTML = '<p>Nice one. I\'ll be in touch.</p>';
-
             } catch (error) {
                 console.error('Error submitting form:', error);
-                // Optionally, display an error message to the user
                 emailCaptureContainer.innerHTML = '<p>Something went wrong. Please try again.</p>';
             }
         });
 
         // --- SWIPE GESTURE LOGIC ---
         function handleSwipe() {
-            const swipeThreshold = 50; // Minimum distance in pixels for a swipe
-            if (touchendX < touchstartX - swipeThreshold) {
-                // Swiped left
-                nextBtn.click();
-            }
-            if (touchendX > touchstartX + swipeThreshold) {
-                // Swiped right
-                prevBtn.click();
-            }
+            const swipeThreshold = 50;
+            if (touchendX < touchstartX - swipeThreshold) navigate(1); // Swipe left
+            if (touchendX > touchstartX + swipeThreshold) navigate(-1); // Swipe right
         }
 
-        flashcardEl.addEventListener('touchstart', e => {
-            touchstartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-
-        flashcardEl.addEventListener('touchend', e => {
-            touchendX = e.changedTouches[0].screenX;
-            handleSwipe();
-        });
+        flashcardEl.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, { passive: true });
+        flashcardEl.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; handleSwipe(); });
 
         // --- INITIALIZATION ---
         async function initializeApp() {
-            // !!! IMPORTANT: Replace this URL with the one you got from Google Sheets !!!
             const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT95M4sqlMQsvQCwpeL5cqDG6OsgCxs3RiJZRDPkmOd23nahZfDO1UGwZx853uhJe2hVmt6k8_EjrDY/pub?gid=905710232&single=true&output=csv';
 
             if (googleSheetUrl.includes('PASTE_YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE')) {
@@ -529,16 +536,14 @@ gtag('config', 'G-8DPFHXTE94');
             try {
                 const response = await fetch(fetchUrl);
                 if (!response.ok) throw new Error(`Network response was not ok. Status: ${response.status}`);
-
                 const csvText = await response.text();
                 cards = parseCSV(csvText);
-
-                shuffleArray(cards); // <-- Randomize the card order
+                cards.reverse(); // Show last entry in the sheet first
 
                 if (cards.length > 0) {
                     renderCard();
                 } else {
-                    englishEl.textContent = 'Could not load any cards. Check your Google Sheet data and URL.';
+                    englishEl.textContent = 'Could not load cards. Check your Google Sheet.';
                 }
             } catch (error) {
                 console.error('Failed to load or parse card data:', error);
@@ -546,9 +551,7 @@ gtag('config', 'G-8DPFHXTE94');
             }
         }
 
-        // Load the data and start the app
         initializeApp();
-
     </script>
 </body>
 </html>
