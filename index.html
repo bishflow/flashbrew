@@ -120,7 +120,7 @@ gtag('config', 'G-8DPFHXTE94');
             max-height: 400px; /* Increased max-height */
             object-fit: contain;
             border-radius: 15px;
-            margin-top: 15px;
+            margin-top: 5px; /* REQUIREMENT: Reduced from 15px to decrease whitespace */
             cursor: pointer;
             transition: transform 0.2s;
         }
@@ -135,7 +135,7 @@ gtag('config', 'G-8DPFHXTE94');
             flex-direction: column;
             align-items: center;
             gap: 10px;
-            margin: 20px 0;
+            margin: 10px 0; /* REQUIREMENT: Reduced from 20px to decrease whitespace */
         }
 
         /* Text Styles */
@@ -411,7 +411,7 @@ gtag('config', 'G-8DPFHXTE94');
             const card = cards[currentCardIndex];
             englishEl.textContent = card.english;
 
-            // --- Use the optimizer function when setting the image source ---
+            // Use the optimizer function when setting the image source
             imageEl.src = optimizeCloudinaryUrl(card.image);
 
             imageEl.alt = card.english;
@@ -420,14 +420,14 @@ gtag('config', 'G-8DPFHXTE94');
             descriptionEl.textContent = card.description;
             cardCounterEl.textContent = `${currentCardIndex + 1} / ${cards.length}`;
 
-            // Reset visibility for all controlled elements
+            // --- Reset visibility for all controlled elements ---
             imageEl.classList.add('hidden');
             showImageBtn.classList.add('hidden');
             showAnswerBtn.classList.add('hidden');
             descriptionEl.classList.add('hidden');
             answerContainer.classList.add('hidden');
 
-            // Set visibility based on the current mode
+            // --- Set visibility based on the current mode ---
             if (currentMode === 'learn') {
                 imageEl.classList.remove('hidden');
                 descriptionEl.classList.remove('hidden');
