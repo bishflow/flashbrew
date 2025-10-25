@@ -386,6 +386,21 @@ gtag('config', 'G-8DPFHXTE94');
             });
         }
 
+        /**
+         * Adds optimization parameters to a Cloudinary URL.
+         * @param {string} url The original image URL.
+         * @returns {string} The optimized URL or the original URL if not a Cloudinary link.
+         */
+        function optimizeCloudinaryUrl(url) {
+            const cloudinaryBase = 'https://res.cloudinary.com/deknbultg/image/upload/';
+            const optimizationParams = 'q_auto:eco/w_700/';
+
+            if (url && url.startsWith(cloudinaryBase) && !url.includes(optimizationParams)) {
+                return url.replace(cloudinaryBase, cloudinaryBase + optimizationParams);
+            }
+            return url;
+        }
+
         // --- CORE FUNCTION ---
         function renderCard() {
             if (cards.length === 0) {
@@ -395,21 +410,24 @@ gtag('config', 'G-8DPFHXTE94');
 
             const card = cards[currentCardIndex];
             englishEl.textContent = card.english;
-            imageEl.src = card.image;
+
+            // --- Use the optimizer function when setting the image source ---
+            imageEl.src = optimizeCloudinaryUrl(card.image);
+
             imageEl.alt = card.english;
             hebrewEl.textContent = card.hebrew;
             transliterationEl.textContent = card.transliteration;
             descriptionEl.textContent = card.description;
             cardCounterEl.textContent = `${currentCardIndex + 1} / ${cards.length}`;
 
-            // --- Reset visibility for all controlled elements ---
+            // Reset visibility for all controlled elements
             imageEl.classList.add('hidden');
             showImageBtn.classList.add('hidden');
             showAnswerBtn.classList.add('hidden');
             descriptionEl.classList.add('hidden');
             answerContainer.classList.add('hidden');
 
-            // --- Set visibility based on the current mode ---
+            // Set visibility based on the current mode
             if (currentMode === 'learn') {
                 imageEl.classList.remove('hidden');
                 descriptionEl.classList.remove('hidden');
