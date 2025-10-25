@@ -33,7 +33,7 @@ gtag('config', 'G-8DPFHXTE94');
         /* App Container */
         #app-container {
             width: 100%;
-            max-width: 650px; /* Increased width */
+            max-width: 650px;
             background: #ffffff;
             border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -43,22 +43,33 @@ gtag('config', 'G-8DPFHXTE94');
             flex-direction: column;
         }
 
-        /* Controls Area (now at the bottom) */
+        /* Controls Area */
         .controls {
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin-top: 20px; /* Changed from margin-bottom */
-            order: 3; /* To place it at the bottom of the flex container */
+            margin-top: 20px;
+            order: 3;
         }
 
         /* Navigation Area */
         .navigation {
             display: flex;
-            justify-content: center;
+            justify-content: center; /* REQUIREMENT: Changed from space-between */
+            align-items: center;
             gap: 10px;
-            margin-top: 20px; /* Added margin top for spacing */
+            margin-top: 20px;
             order: 2;
+        }
+
+        #filter-dropdown {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background-color: #f8f8f8;
+            font-size: 16px;
+            font-weight: 500;
+            /* REQUIREMENT: flex-grow: 1; was removed to make it narrower */
         }
 
         button {
@@ -82,6 +93,11 @@ gtag('config', 'G-8DPFHXTE94');
             border-color: #007bff;
         }
 
+         button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
         .nav-btn {
             font-size: 24px;
             font-weight: bold;
@@ -89,38 +105,51 @@ gtag('config', 'G-8DPFHXTE94');
             height: 50px;
             padding: 0;
             line-height: 50px;
-        }
-
-        #card-counter {
-            font-size: 16px;
-            color: #777;
-            align-self: center;
-            margin: 0 15px;
+            flex-shrink: 0; /* Prevent shrinking */
         }
 
         /* Flashcard Area */
         #flashcard {
+            position: relative; /* Needed for absolute positioning of star button */
             border: 1px solid #e0e0e0;
             border-radius: 12px;
             padding: 5px;
-            min-height: 500px; /* Increased min-height for larger image */
+            min-height: 500px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             order: 1;
-            flex-grow: 1; /* Allows card to grow and fill space */
-            -webkit-user-select: none; /* Prevents text selection during swipe */
+            flex-grow: 1;
+            -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
         }
 
+        #star-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 32px;
+            color: #ffc107;
+            padding: 5px;
+            cursor: pointer;
+            line-height: 1;
+        }
+         #star-btn:hover {
+            background-color: transparent;
+            opacity: 0.8;
+        }
+
+
         #flashcard-image {
             width: 100%;
-            max-height: 400px; /* Increased max-height */
+            max-height: 400px;
             object-fit: contain;
             border-radius: 15px;
-            margin-top: 5px; /* REQUIREMENT: Reduced from 15px to decrease whitespace */
+            margin-top: 0;
             cursor: pointer;
             transition: transform 0.2s;
         }
@@ -135,7 +164,7 @@ gtag('config', 'G-8DPFHXTE94');
             flex-direction: column;
             align-items: center;
             gap: 10px;
-            margin: 10px 0; /* REQUIREMENT: Reduced from 20px to decrease whitespace */
+            margin: 5px 0;
         }
 
         /* Text Styles */
@@ -146,7 +175,7 @@ gtag('config', 'G-8DPFHXTE94');
         .description {
             font-style: italic;
             color: #555;
-            margin-top: 15px; /* Spacing from the image */
+            margin-top: 15px;
         }
 
         .english {
@@ -160,15 +189,15 @@ gtag('config', 'G-8DPFHXTE94');
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 10px; /* Space between word and button */
-            direction: rtl; /* Ensures button is on the left in RTL context */
+            gap: 10px;
+            direction: rtl;
         }
 
         .hebrew {
             font-size: 36px;
             font-weight: bold;
             color: #0056b3;
-            margin: 0; /* Remove default margin */
+            margin: 0;
         }
 
         .transliteration {
@@ -189,15 +218,13 @@ gtag('config', 'G-8DPFHXTE94');
         }
 
         .audio-button:hover {
-            background-color: transparent; /* Override generic button hover */
+            background-color: transparent;
             color: #007bff;
         }
 
-        /* Make the material icon larger */
         .audio-button .material-symbols-outlined {
             font-size: 36px;
         }
-
 
         /* Class to hide elements */
         .hidden {
@@ -209,7 +236,7 @@ gtag('config', 'G-8DPFHXTE94');
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid #e0e0e0;
-            order: 4; /* Ensure it's at the very bottom */
+            order: 4;
         }
 
         #email-capture-container p {
@@ -245,37 +272,21 @@ gtag('config', 'G-8DPFHXTE94');
 
         /* Mobile Responsive Styles */
         @media (max-width: 700px) {
-            body {
-                padding: 0; /* Remove padding to make container full-width */
-            }
+            body { padding: 0; }
             #app-container {
                 max-width: 100%;
                 min-height: 100vh;
                 border-radius: 0;
                 box-shadow: none;
                 padding: 10px;
-                justify-content: space-between; /* Better vertical spacing */
+                justify-content: space-between;
             }
-            #flashcard {
-                min-height: auto; /* Allow flashcard to be flexible */
-            }
-            .hebrew {
-                font-size: 32px;
-            }
-            .english {
-                font-size: 22px;
-            }
-            .audio-button .material-symbols-outlined {
-                font-size: 32px;
-            }
-            #email-form {
-                flex-direction: column;
-                align-items: center;
-            }
-            #email-form input[type="email"], #email-form button {
-                width: 100%;
-                max-width: 350px;
-            }
+            #flashcard { min-height: auto; }
+            .hebrew { font-size: 32px; }
+            .english { font-size: 22px; }
+            .audio-button .material-symbols-outlined { font-size: 32px; }
+            #email-form { flex-direction: column; align-items: center; }
+            #email-form input[type="email"], #email-form button { width: 100%; max-width: 350px; }
         }
 
     </style>
@@ -285,13 +296,13 @@ gtag('config', 'G-8DPFHXTE94');
     <div id="app-container">
         <h1>Hebrew Flashcards</h1>
         <div id="flashcard">
+            <button id="star-btn" title="Toggle Star">☆</button>
             <div id="text-container">
                 <p id="english" class="english">Loading cards...</p>
                 <div id="answer-container" class="hidden">
                     <div id="hebrew-container">
                         <p id="hebrew" class="hebrew"></p>
                         <button id="audio-btn" class="audio-button" title="Read aloud">
-                        <!--     <span class="material-symbols-outlined">volume_up</span> -->
                         </button>
                     </div>
                     <p id="transliteration" class="transliteration"></p>
@@ -309,7 +320,10 @@ gtag('config', 'G-8DPFHXTE94');
 
         <div class="navigation">
             <button id="prev-btn" class="nav-btn">←</button>
-            <span id="card-counter"></span>
+            <select id="filter-dropdown">
+                <option value="all">All Cards</option>
+                <option value="starred">Starred</option>
+            </select>
             <button id="next-btn" class="nav-btn">→</button>
         </div>
 
@@ -319,7 +333,6 @@ gtag('config', 'G-8DPFHXTE94');
             <button id="hard-test-btn">Hard Test</button>
         </div>
 
-        <!-- Email Capture Form -->
         <div id="email-capture-container">
             <p>Interested in more flashcards?</p>
             <form id="email-form">
@@ -332,11 +345,13 @@ gtag('config', 'G-8DPFHXTE94');
 
     <script>
         // --- DATA ---
-        let cards = [];
+        let allCards = [];
+        let activeDeck = [];
+        let starredCardIds = new Set();
 
         // --- STATE MANAGEMENT ---
         let currentCardIndex = 0;
-        let currentMode = 'learn'; // 'learn', 'test', or 'hard-test'
+        let currentMode = 'learn';
         let touchstartX = 0;
         let touchendX = 0;
 
@@ -347,24 +362,19 @@ gtag('config', 'G-8DPFHXTE94');
         const transliterationEl = document.getElementById('transliteration');
         const answerContainer = document.getElementById('answer-container');
         const imageEl = document.getElementById('flashcard-image');
-        const cardCounterEl = document.getElementById('card-counter');
         const audioBtn = document.getElementById('audio-btn');
         const flashcardEl = document.getElementById('flashcard');
+        const starBtn = document.getElementById('star-btn');
+        const filterDropdown = document.getElementById('filter-dropdown');
 
-        // Mode buttons
         const learnBtn = document.getElementById('learn-btn');
         const testBtn = document.getElementById('test-btn');
         const hardTestBtn = document.getElementById('hard-test-btn');
-
-        // Navigation buttons
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
-
-        // Card action buttons
         const showImageBtn = document.getElementById('show-image-btn');
         const showAnswerBtn = document.getElementById('show-answer-btn');
 
-        // Email form elements
         const emailCaptureContainer = document.getElementById('email-capture-container');
         const emailForm = document.getElementById('email-form');
         const emailInput = document.getElementById('email-input');
@@ -388,46 +398,98 @@ gtag('config', 'G-8DPFHXTE94');
 
         /**
          * Adds optimization parameters to a Cloudinary URL.
-         * @param {string} url The original image URL.
-         * @returns {string} The optimized URL or the original URL if not a Cloudinary link.
          */
         function optimizeCloudinaryUrl(url) {
             const cloudinaryBase = 'https://res.cloudinary.com/deknbultg/image/upload/';
             const optimizationParams = 'q_auto:eco/w_700/';
-
             if (url && url.startsWith(cloudinaryBase) && !url.includes(optimizationParams)) {
                 return url.replace(cloudinaryBase, cloudinaryBase + optimizationParams);
             }
             return url;
         }
 
-        // --- CORE FUNCTION ---
+        /**
+         * Loads starred cards from localStorage.
+         */
+        function loadStarredCards() {
+            const stored = localStorage.getItem('starredCards');
+            starredCardIds = new Set(stored ? JSON.parse(stored) : []);
+        }
+
+        /**
+         * Saves the current set of starred card IDs to localStorage.
+         */
+        function saveStarredCards() {
+            localStorage.setItem('starredCards', JSON.stringify(Array.from(starredCardIds)));
+        }
+
+        /**
+         * Updates the text content of the filter dropdown options.
+         */
+        function updateFilterDisplay() {
+            const allOption = filterDropdown.querySelector('option[value="all"]');
+            const starredOption = filterDropdown.querySelector('option[value="starred"]');
+
+            const totalAll = allCards.length;
+            const totalStarred = starredCardIds.size;
+
+            let currentAllIndex = 0;
+            if(activeDeck.length > 0) {
+                const currentCardId = activeDeck[currentCardIndex].english;
+                currentAllIndex = allCards.findIndex(card => card.english === currentCardId);
+            }
+
+            if (filterDropdown.value === 'all') {
+                allOption.textContent = `All Cards (${currentCardIndex + 1} / ${totalAll})`;
+                starredOption.textContent = `Starred (${totalStarred})`;
+            } else { // 'starred'
+                const currentStarredDisplayIndex = activeDeck.length > 0 ? currentCardIndex + 1 : 0;
+                allOption.textContent = `All Cards (${totalAll})`;
+                starredOption.textContent = `Starred (${currentStarredDisplayIndex} / ${totalStarred})`;
+            }
+
+            // Disable navigation if the active deck is empty
+            const navDisabled = activeDeck.length === 0;
+            prevBtn.disabled = navDisabled;
+            nextBtn.disabled = navDisabled;
+        }
+
+        /**
+         * Main function to display the current card.
+         */
         function renderCard() {
-            if (cards.length === 0) {
-                englishEl.textContent = 'No cards found.';
+            updateFilterDisplay(); // Update counts every time we render a new card
+
+            if (activeDeck.length === 0) {
+                englishEl.textContent = filterDropdown.value === 'starred' ? 'No starred cards.' : 'No cards found.';
+                hebrewEl.textContent = '';
+                transliterationEl.textContent = '';
+                imageEl.classList.add('hidden');
+                starBtn.classList.add('hidden');
                 return;
             }
 
-            const card = cards[currentCardIndex];
+            starBtn.classList.remove('hidden');
+            const card = activeDeck[currentCardIndex];
+
             englishEl.textContent = card.english;
-
-            // Use the optimizer function when setting the image source
             imageEl.src = optimizeCloudinaryUrl(card.image);
-
             imageEl.alt = card.english;
             hebrewEl.textContent = card.hebrew;
             transliterationEl.textContent = card.transliteration;
             descriptionEl.textContent = card.description;
-            cardCounterEl.textContent = `${currentCardIndex + 1} / ${cards.length}`;
 
-            // --- Reset visibility for all controlled elements ---
+            // Update star icon based on card state
+            starBtn.textContent = starredCardIds.has(card.english) ? '★' : '☆';
+
+            // Reset visibility for all controlled elements
             imageEl.classList.add('hidden');
             showImageBtn.classList.add('hidden');
             showAnswerBtn.classList.add('hidden');
             descriptionEl.classList.add('hidden');
             answerContainer.classList.add('hidden');
 
-            // --- Set visibility based on the current mode ---
+            // Set visibility based on the current mode
             if (currentMode === 'learn') {
                 imageEl.classList.remove('hidden');
                 descriptionEl.classList.remove('hidden');
@@ -441,7 +503,9 @@ gtag('config', 'G-8DPFHXTE94');
             }
         }
 
-        // --- MODE SELECTION ---
+        /**
+         * Sets the current learning mode.
+         */
         function setMode(newMode) {
             currentMode = newMode;
             learnBtn.classList.toggle('active', newMode === 'learn');
@@ -450,23 +514,66 @@ gtag('config', 'G-8DPFHXTE94');
             renderCard();
         }
 
+        /**
+         * Navigates to the next or previous card in the activeDeck.
+         */
+        function navigate(direction) {
+            if (activeDeck.length === 0) return;
+            currentCardIndex = (currentCardIndex + direction + activeDeck.length) % activeDeck.length;
+            renderCard();
+        }
+
+        /**
+         * Handles the logic for filtering the deck.
+         */
+        function applyFilter() {
+            const filterValue = filterDropdown.value;
+            if (filterValue === 'starred') {
+                activeDeck = allCards.filter(card => starredCardIds.has(card.english));
+            } else {
+                activeDeck = allCards;
+            }
+            currentCardIndex = 0;
+            renderCard();
+        }
+
+        // --- EVENT LISTENERS ---
         learnBtn.addEventListener('click', () => setMode('learn'));
         testBtn.addEventListener('click', () => setMode('test'));
         hardTestBtn.addEventListener('click', () => setMode('hard-test'));
 
-        // --- NAVIGATION ---
-        function navigate(direction) {
-            if (cards.length === 0) return;
-            currentCardIndex = (currentCardIndex + direction + cards.length) % cards.length;
-            renderCard();
-        }
-
         nextBtn.addEventListener('click', () => navigate(1));
         prevBtn.addEventListener('click', () => navigate(-1));
 
-        // --- INTERACTION HANDLERS ---
+        filterDropdown.addEventListener('change', applyFilter);
+
+        starBtn.addEventListener('click', () => {
+            if (activeDeck.length === 0) return;
+            const cardId = activeDeck[currentCardIndex].english;
+
+            if (starredCardIds.has(cardId)) {
+                starredCardIds.delete(cardId);
+                starBtn.textContent = '☆';
+            } else {
+                starredCardIds.add(cardId);
+                starBtn.textContent = '★';
+            }
+            saveStarredCards();
+
+            // If in "Starred" mode, un-starring should update the deck in real-time
+            if (filterDropdown.value === 'starred') {
+                const oldIndex = currentCardIndex;
+                activeDeck = allCards.filter(card => starredCardIds.has(card.english));
+                // Adjust index to prevent going out of bounds
+                currentCardIndex = Math.max(0, Math.min(oldIndex, activeDeck.length - 1));
+                renderCard();
+            } else {
+                 updateFilterDisplay(); // Just update the count
+            }
+        });
+
         flashcardEl.addEventListener('click', () => {
-            if (currentMode === 'test') { // Easy Test flip
+            if (currentMode === 'test') {
                 answerContainer.classList.remove('hidden');
                 showAnswerBtn.classList.add('hidden');
             }
@@ -482,12 +589,9 @@ gtag('config', 'G-8DPFHXTE94');
 
         showAnswerBtn.addEventListener('click', (event) => {
             event.stopPropagation();
-            // This button reveals the full answer in both test modes
             imageEl.classList.remove('hidden');
             answerContainer.classList.remove('hidden');
             descriptionEl.classList.remove('hidden');
-
-            // Hide the buttons that trigger reveals
             showImageBtn.classList.add('hidden');
             showAnswerBtn.classList.add('hidden');
         });
@@ -496,7 +600,7 @@ gtag('config', 'G-8DPFHXTE94');
             event.stopPropagation();
             if (currentMode === 'hard-test') {
                 answerContainer.classList.remove('hidden');
-                showAnswerBtn.classList.add('hidden'); // Also hide the answer button
+                showAnswerBtn.classList.add('hidden');
             }
         });
 
@@ -514,7 +618,6 @@ gtag('config', 'G-8DPFHXTE94');
             }
         });
 
-        // --- EMAIL FORM SUBMISSION ---
         emailForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const email = emailInput.value;
@@ -555,17 +658,21 @@ gtag('config', 'G-8DPFHXTE94');
                 const response = await fetch(fetchUrl);
                 if (!response.ok) throw new Error(`Network response was not ok. Status: ${response.status}`);
                 const csvText = await response.text();
-                cards = parseCSV(csvText);
-                cards.reverse(); // Show last entry in the sheet first
+                allCards = parseCSV(csvText);
+                allCards.reverse();
 
-                if (cards.length > 0) {
-                    renderCard();
+                loadStarredCards();
+
+                if (allCards.length > 0) {
+                    applyFilter(); // This will set the initial deck and render the first card
                 } else {
                     englishEl.textContent = 'Could not load cards. Check your Google Sheet.';
+                    updateFilterDisplay();
                 }
             } catch (error) {
                 console.error('Failed to load or parse card data:', error);
                 englishEl.textContent = 'Error loading flashcards. See console for details.';
+                updateFilterDisplay();
             }
         }
 
