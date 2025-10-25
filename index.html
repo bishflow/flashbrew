@@ -52,10 +52,25 @@ gtag('config', 'G-8DPFHXTE94');
             order: 3;
         }
 
+        /* Bulk Actions Area */
+        .bulk-actions {
+            order: 4; /* Places it below the controls */
+            margin-top: 15px;
+        }
+        .bulk-actions a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .bulk-actions a:hover {
+            text-decoration: underline;
+        }
+
+
         /* Navigation Area */
         .navigation {
             display: flex;
-            justify-content: center; /* REQUIREMENT: Changed from space-between */
+            justify-content: center;
             align-items: center;
             gap: 10px;
             margin-top: 20px;
@@ -69,7 +84,6 @@ gtag('config', 'G-8DPFHXTE94');
             background-color: #f8f8f8;
             font-size: 16px;
             font-weight: 500;
-            /* REQUIREMENT: flex-grow: 1; was removed to make it narrower */
         }
 
         button {
@@ -105,12 +119,12 @@ gtag('config', 'G-8DPFHXTE94');
             height: 50px;
             padding: 0;
             line-height: 50px;
-            flex-shrink: 0; /* Prevent shrinking */
+            flex-shrink: 0;
         }
 
         /* Flashcard Area */
         #flashcard {
-            position: relative; /* Needed for absolute positioning of star button */
+            position: relative;
             border: 1px solid #e0e0e0;
             border-radius: 12px;
             padding: 5px;
@@ -126,21 +140,30 @@ gtag('config', 'G-8DPFHXTE94');
             user-select: none;
         }
 
-        #star-btn {
+        .card-corner-btn {
             position: absolute;
-            top: 10px;
-            right: 10px;
             background: none;
             border: none;
             font-size: 32px;
-            color: #ffc107;
             padding: 5px;
             cursor: pointer;
             line-height: 1;
         }
-         #star-btn:hover {
+        .card-corner-btn:hover {
             background-color: transparent;
             opacity: 0.8;
+        }
+
+        #tts-audio-btn {
+            top: 10px;
+            left: 10px;
+            color: #333;
+        }
+
+        #star-btn {
+            top: 10px;
+            right: 10px;
+            color: #ffc107;
         }
 
 
@@ -236,7 +259,7 @@ gtag('config', 'G-8DPFHXTE94');
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid #e0e0e0;
-            order: 4;
+            order: 5;
         }
 
         #email-capture-container p {
@@ -296,14 +319,16 @@ gtag('config', 'G-8DPFHXTE94');
     <div id="app-container">
         <h1>Hebrew Flashcards</h1>
         <div id="flashcard">
-            <button id="star-btn" title="Toggle Star">☆</button>
+            <button id="tts-audio-btn" title="Play audio" class="card-corner-btn">
+                <span class="material-symbols-outlined" style="font-size: 35px;">play_circle</span>
+            </button>
+            <button id="star-btn" title="Toggle Star" class="card-corner-btn">☆</button>
+
             <div id="text-container">
                 <p id="english" class="english">Loading cards...</p>
                 <div id="answer-container" class="hidden">
                     <div id="hebrew-container">
                         <p id="hebrew" class="hebrew"></p>
-                        <button id="audio-btn" class="audio-button" title="Read aloud">
-                        </button>
                     </div>
                     <p id="transliteration" class="transliteration"></p>
                 </div>
@@ -333,6 +358,10 @@ gtag('config', 'G-8DPFHXTE94');
             <button id="hard-test-btn">Hard Test</button>
         </div>
 
+        <div class="bulk-actions">
+            <a href="#" id="star-all-link">Star all</a>
+        </div>
+
         <div id="email-capture-container">
             <p>Interested in more flashcards?</p>
             <form id="email-form">
@@ -354,6 +383,7 @@ gtag('config', 'G-8DPFHXTE94');
         let currentMode = 'learn';
         let touchstartX = 0;
         let touchendX = 0;
+        let hebrewVoice = null; // To store the best available Hebrew voice
 
         // --- DOM ELEMENT REFERENCES ---
         const descriptionEl = document.getElementById('description');
@@ -362,10 +392,11 @@ gtag('config', 'G-8DPFHXTE94');
         const transliterationEl = document.getElementById('transliteration');
         const answerContainer = document.getElementById('answer-container');
         const imageEl = document.getElementById('flashcard-image');
-        const audioBtn = document.getElementById('audio-btn');
         const flashcardEl = document.getElementById('flashcard');
         const starBtn = document.getElementById('star-btn');
+        const ttsAudioBtn = document.getElementById('tts-audio-btn');
         const filterDropdown = document.getElementById('filter-dropdown');
+        const starAllLink = document.getElementById('star-all-link');
 
         const learnBtn = document.getElementById('learn-btn');
         const testBtn = document.getElementById('test-btn');
@@ -448,7 +479,6 @@ gtag('config', 'G-8DPFHXTE94');
                 starredOption.textContent = `Starred (${currentStarredDisplayIndex} / ${totalStarred})`;
             }
 
-            // Disable navigation if the active deck is empty
             const navDisabled = activeDeck.length === 0;
             prevBtn.disabled = navDisabled;
             nextBtn.disabled = navDisabled;
@@ -458,18 +488,23 @@ gtag('config', 'G-8DPFHXTE94');
          * Main function to display the current card.
          */
         function renderCard() {
-            updateFilterDisplay(); // Update counts every time we render a new card
+            updateFilterDisplay();
 
-            if (activeDeck.length === 0) {
+            const hasActiveCard = activeDeck.length > 0;
+
+            if (!hasActiveCard) {
                 englishEl.textContent = filterDropdown.value === 'starred' ? 'No starred cards.' : 'No cards found.';
                 hebrewEl.textContent = '';
                 transliterationEl.textContent = '';
                 imageEl.classList.add('hidden');
                 starBtn.classList.add('hidden');
+                ttsAudioBtn.classList.add('hidden');
                 return;
             }
 
             starBtn.classList.remove('hidden');
+            ttsAudioBtn.classList.remove('hidden');
+
             const card = activeDeck[currentCardIndex];
 
             englishEl.textContent = card.english;
@@ -479,17 +514,14 @@ gtag('config', 'G-8DPFHXTE94');
             transliterationEl.textContent = card.transliteration;
             descriptionEl.textContent = card.description;
 
-            // Update star icon based on card state
             starBtn.textContent = starredCardIds.has(card.english) ? '★' : '☆';
 
-            // Reset visibility for all controlled elements
             imageEl.classList.add('hidden');
             showImageBtn.classList.add('hidden');
             showAnswerBtn.classList.add('hidden');
             descriptionEl.classList.add('hidden');
             answerContainer.classList.add('hidden');
 
-            // Set visibility based on the current mode
             if (currentMode === 'learn') {
                 imageEl.classList.remove('hidden');
                 descriptionEl.classList.remove('hidden');
@@ -537,6 +569,38 @@ gtag('config', 'G-8DPFHXTE94');
             renderCard();
         }
 
+        /**
+         * Finds and stores the best available Hebrew voice.
+         */
+        function loadHebrewVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            hebrewVoice = voices.find(voice => voice.lang === 'he-IL');
+        }
+
+        /**
+         * Plays audio using the browser's built-in TTS engine.
+         */
+        function playBrowserAudio() {
+            const textToSpeak = hebrewEl.textContent;
+            if (textToSpeak && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                utterance.lang = 'he-IL';
+                utterance.rate = 0.5; // Slower speech rate for clarity
+
+                // If a specific Hebrew voice was found, use it for better quality
+                if (hebrewVoice) {
+                    utterance.voice = hebrewVoice;
+                }
+
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert('Sorry, your browser does not support text-to-speech.');
+            }
+        }
+
+
         // --- EVENT LISTENERS ---
         learnBtn.addEventListener('click', () => setMode('learn'));
         testBtn.addEventListener('click', () => setMode('test'));
@@ -546,6 +610,15 @@ gtag('config', 'G-8DPFHXTE94');
         prevBtn.addEventListener('click', () => navigate(-1));
 
         filterDropdown.addEventListener('change', applyFilter);
+        ttsAudioBtn.addEventListener('click', playBrowserAudio);
+
+        starAllLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (allCards.length === 0) return;
+            allCards.forEach(card => starredCardIds.add(card.english));
+            saveStarredCards();
+            applyFilter();
+        });
 
         starBtn.addEventListener('click', () => {
             if (activeDeck.length === 0) return;
@@ -560,15 +633,13 @@ gtag('config', 'G-8DPFHXTE94');
             }
             saveStarredCards();
 
-            // If in "Starred" mode, un-starring should update the deck in real-time
             if (filterDropdown.value === 'starred') {
                 const oldIndex = currentCardIndex;
                 activeDeck = allCards.filter(card => starredCardIds.has(card.english));
-                // Adjust index to prevent going out of bounds
                 currentCardIndex = Math.max(0, Math.min(oldIndex, activeDeck.length - 1));
                 renderCard();
             } else {
-                 updateFilterDisplay(); // Just update the count
+                 updateFilterDisplay();
             }
         });
 
@@ -601,20 +672,6 @@ gtag('config', 'G-8DPFHXTE94');
             if (currentMode === 'hard-test') {
                 answerContainer.classList.remove('hidden');
                 showAnswerBtn.classList.add('hidden');
-            }
-        });
-
-        audioBtn.addEventListener('click', (event) => {
-            event.stopPropagation();
-            const textToSpeak = hebrewEl.textContent;
-            if (textToSpeak && 'speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                utterance.lang = 'he-IL';
-                utterance.rate = 0.9;
-                window.speechSynthesis.speak(utterance);
-            } else {
-                alert('Sorry, your browser does not support text-to-speech.');
             }
         });
 
@@ -663,8 +720,16 @@ gtag('config', 'G-8DPFHXTE94');
 
                 loadStarredCards();
 
+                // Load voices for TTS
+                if ('speechSynthesis' in window) {
+                    // The voices load asynchronously, so we listen for the event
+                    speechSynthesis.onvoiceschanged = loadHebrewVoice;
+                    // Also call it once in case the voices are already loaded
+                    loadHebrewVoice();
+                }
+
                 if (allCards.length > 0) {
-                    applyFilter(); // This will set the initial deck and render the first card
+                    applyFilter();
                 } else {
                     englishEl.textContent = 'Could not load cards. Check your Google Sheet.';
                     updateFilterDisplay();
